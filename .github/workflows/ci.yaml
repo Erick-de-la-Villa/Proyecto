@@ -60,4 +60,16 @@ jobs:
           context: .
           tags: erickvilla830/cicd:latest
 
-          
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Deploy to Azure Container Instances
+        run: |
+          az group create --name my-container-apps --location westus
+          az container create --resource-group my-container-apps --name my-web-app --image erickvilla830/cicd:latest --dns-name-label my-web-app --ports 80
+
