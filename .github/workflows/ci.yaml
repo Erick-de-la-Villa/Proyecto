@@ -33,7 +33,43 @@ jobs:
       - name: Run tests
         run: npm run test
 
-      # - name: Lint
-      #   run: npm run lint
+  docker:
+    needs: testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install dependencies
+        run: npm install
+      - name: Docker buildx setup
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          context: .
+          tags: erickvilla830/cicd:latest
 
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Deploy to Azure Container Instances
+        run: |
+          az group create --name my-container-apps --location westus
+          az container create --resource-group my-container-apps --name my-web-app --image erickvilla830/cicd:latest --dns-name-label my-web-app --ports 80
 
